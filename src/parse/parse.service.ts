@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -43,6 +45,7 @@ export class ParseService {
   browser: Browser | null = null;
   context: BrowserContext | null = null;
   startPage: Page | null = null;
+  dnsPage: Page | null = null;
 
   getErrorData() {
     return { name: 'Не найдены данные', price: 'Попробуйте еще раз' };
@@ -53,6 +56,10 @@ export class ParseService {
       console.log('Запускаем браузер...');
       const oldProxy = 'socks5://8ekQf9:Y8V21F@195.158.225.129:8000';
       console.log(111, anonymizeProxy);
+      const profileDir = '/tmp/profile/';
+      const hasprofileDir = fs.existsSync(profileDir);
+      console.log('hasprofileDir', hasprofileDir);
+
       // console.log(222, await ProxyChain.anonymizeProxy());
 
       const newProxy = await anonymizeProxy(oldProxy);
@@ -62,6 +69,7 @@ export class ParseService {
       this.browser = await chromium.launch({
         headless: false,
         channel: 'chrome',
+
         logger: {
           isEnabled: () => true, // Включаем логирование всегда
           log: (name, severity, message) => {
@@ -84,6 +92,7 @@ export class ParseService {
           // '--user-data-dir=/tmp/chrome-profile',
           '--disable-blink-features=AutomationControlled',
           '--disable-automation',
+          '--auto-open-devtools-for-tabs',
           // '--disable-gpu',
           // --enable-accelerated-2d-canvas
           // // '--disable-webgl',
@@ -100,17 +109,22 @@ export class ParseService {
 
       const storageStatePath = '/tmp/cookies.json';
       const hasStorageState = fs.existsSync(storageStatePath);
-
-      console.log('storageStatePath', storageStatePath);
       console.log('hasStorageState', hasStorageState);
+      // const hasStorageState = false;
+
+      // console.log('storageStatePath', storageStatePath);
+      // console.log('hasStorageState', hasStorageState);
 
       this.context = await this.browser.newContext({
         // userAgent:
-        //   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        //   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',s
         locale: 'ru-RU',
         timezoneId: 'Europe/Moscow',
         storageState: hasStorageState ? storageStatePath : undefined,
       });
+
+      const loadedCookies = await this.context.cookies();
+      // console.log('Loaded cookies:', loadedCookies);
 
       await this.context.addInitScript(() => {
         Object.defineProperty(navigator, 'userAgent', {
@@ -125,12 +139,15 @@ export class ParseService {
       });
 
       this.startPage = await this.context.newPage();
-      // await this.startPage.goto('about:blank');
+      await this.startPage.goto('about:blank');
 
-      if (!hasStorageState) {
+      if (true) {
         console.log('Первый заход для получения куки...');
-        await this.startPage.goto('https://www.dns-shop.ru/', { waitUntil: 'networkidle' });
+        this.startPage.on('response', (response) => {
+          console.log(`startPage URL: ${response.url()} | Status: ${response.status()}`);
+        });
         await this.startPage.evaluate(() => window.scrollTo(0, 500));
+        await this.startPage.goto('https://www.dns-shop.ru/', { waitUntil: 'networkidle' });
         await this.startPage.waitForTimeout(3000);
         await this.context.storageState({ path: storageStatePath }); // Сохраняем куки и состояние
         console.log('Куки сохранены в', storageStatePath);
@@ -142,6 +159,65 @@ export class ParseService {
 
     return this.context;
   }
+
+  // async _getDNSCookies(page: Page) {
+  //   try {
+  //     console.log('Обновляем куки с главной страницы...');
+  //     page.on('response', (res) => console.log(`Response: ${res.url()} - ${res.status()}`));
+  //     await page.goto('https://www.dns-shop.ru/', { waitUntil: 'networkidle', timeout: 60000 });
+  //     await page.evaluate(() => {
+  //       window.scrollTo(0, Math.random() * 1000);
+  //       setTimeout(() => window.scrollTo(0, Math.random() * 1000), 1000);
+  //     });
+  //     await page.waitForTimeout(3000 + Math.random() * 2000);
+  //     await this.context.storageState({ path: '/tmp/cookies.json' });
+  //     console.log('Куки успешно обновлены');
+  //   } catch (error) {
+  //     console.error('Ошибка обновления куки:', error);
+  //   }
+  // }
+
+  // async __getDNSCookies(context: BrowserContext, page: Page) {
+  //   try {
+  //     console.log('Обновляем куки с главной страницы...');
+  //     page.on('response', (res) => console.log(`Response: ${res.url()} - ${res.status()}`));
+
+  //     await page.goto('https://www.dns-shop.ru/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+  //     // Ждём загрузки скрипта Qrator
+  //     await page.waitForResponse((response) => response.url().includes('/__qrator/qauth_utm_v2'), { timeout: 30000 });
+
+  //     // Выполняем JavaScript-челлендж и проверяем результат
+  //     const challengeSuccess = await page.evaluate(async () => {
+  //       if (typeof (window as any).__qrator !== 'undefined') {
+  //         const urlParams = new URLSearchParams(window.location.search);
+  //         const nonce = urlParams.get('nonce') || '';
+  //         const pow = urlParams.get('pow') || '';
+  //         const qsessid = urlParams.get('qsessid') || '';
+
+  //         if (nonce && pow && qsessid) {
+  //           // Упрощённая имитация PoW (нужен точный алгоритм от Qrator)
+  //           const result = `${nonce}.${Math.random().toString(36).substring(2)}`;
+  //           const response = await fetch(
+  //             `/__qrator/validate?pow=${pow}&nonce=${nonce}&qsessid=${qsessid}&result=${result}`
+  //           );
+  //           return response.ok; // true, если статус 200-299
+  //         }
+  //       }
+  //       return false; // Челлендж не выполнен
+  //     });
+
+  //     if (challengeSuccess) {
+  //       await page.waitForTimeout(3000 + Math.random() * 2000);
+  //       await context.storageState({ path: '/tmp/cookies.json' });
+  //       console.log('Куки успешно обновлены после челленджа');
+  //     } else {
+  //       console.error('Челлендж Qrator не пройден');
+  //     }
+  //   } catch (error) {
+  //     console.error('Ошибка обновления куки:', error);
+  //   }
+  // }
 
   async getLinkData(url: string) {
     const site: ISite | null = getSiteInfo(url);
@@ -202,6 +278,12 @@ export class ParseService {
         //   configurable: false,
         // });
 
+        // const devtools: any = (window as any).chrome.devtools;
+        // if (!devtools) {
+        //   window.open('', '_blank', 'devtools');
+        // }
+        // devtools.panels.selectTab('network');
+
         // Перехватываем вызовы через call/apply
         const originalCall = Function.prototype.call;
         Function.prototype.call = function (...args) {
@@ -253,10 +335,6 @@ export class ParseService {
           'Sec-Fetch-Mode': 'navigate',
           'Sec-Fetch-Site': 'none',
           'Sec-Fetch-User': '?1',
-          // 'User-Agent':
-          // 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          // Cookie:
-          //   'current_path=9565a5103f36ecea17597b8bfe0de40efdc12ecd83502fc6a8abccb573ee963ba%3A2%3A%7Bi%3A0%3Bs%3A12%3A%22current_path%22%3Bi%3A1%3Bs%3A116%3A%22%7B%22city%22%3A%2230b7c1f3-03fb-11dc-95ee-00151716f9f5%22%2C%22cityName%22%3A%22%5Cu041c%5Cu043e%5Cu0441%5Cu043a%5Cu0432%5Cu0430%22%2C%22method%22%3A%22default%22%7D%22%3B%7D; phonesIdentV2=caff1e66-1e03-42dd-89ed-7c27e84a0a32; rsu-configuration-id=47861e030ca6b624d70319d97dcedd1125333d436e55e102657fb7bcc660104fa%3A2%3A%7Bi%3A0%3Bs%3A20%3A%22rsu-configuration-id…6%3A%22b7524313-5214-4a6e-9f12-89339866bd78%22%3B%7D; _ab__analog=analog_2; lang=ru; city_path=moscow; _csrf=e48f13688e5a4f17b765b6de9ab46233321cd0b40e15ca2b7a4e4349b3308408a%3A2%3A%7Bi%3A0%3Bs%3A5%3A%22_csrf%22%3Bi%3A1%3Bs%3A32%3A%22oavzFKp-rm9eHX5-O2Dc6T7hUrABI0m0%22%3B%7D; qrator_jsr=1741087127.948.ERxKHhlW8e6nn1CV-io7a547b14iadnp7q7h5uq2uuefssj9q-00; qrator_ssid=1741087131.113.4OIwIlnjxQwms7rW-j0vakispj7fr6liiqvhu3nl5jjn4vhaj; qrator_jsid=1741087127.948.ERxKHhlW8e6nn1CV-q69enr6l3egsuohgohsfi6qe1hduf72r',
         });
 
         page.on('response', (response) => {
@@ -264,13 +342,167 @@ export class ParseService {
         });
 
         // Логируем ошибки страницы
-        page.on('pageerror', (error) => {
-          console.log(`Page error: ${error}`);
+        // page.on('pageerror', (error) => {
+        //   console.log(`Page error: ${error}`);
+        // });
+
+        // if (site.name === (SiteNames.DNS as string)) {
+        //   await this.getDNSCookies(this.context, page);
+        // }
+
+        await page.route('**/__qrator/validatefewfwfw**', async (route) => {
+          console.log('VALIDATE');
+          const requestUrl = route.request().url();
+          console.log(111);
+          const urlParams = new URLSearchParams(requestUrl.split('?')[1]);
+          console.log(222);
+          const pow = parseInt(urlParams.get('pow') || '13');
+          console.log(333);
+          const nonce = urlParams.get('nonce') || '1741384136.483.YVMGNP8ZdWmyIrsT';
+          console.log(444);
+          const qsessid = urlParams.get('qsessid') || '1r7trsb416o4nn1t4m274v246rkg8b50';
+
+          function computePoW(pow: number, nonce: string): string {
+            // Изменим возврат на строку
+            console.log(555);
+            let seed = parseInt(nonce.split('.')[0]) || 0;
+            let b = BigInt(Math.imul(seed, 69069) + 1);
+            let iteration = 0;
+            const maxIterations = 1000000000;
+            console.log(666);
+
+            function countOnes(n: bigint): number {
+              console.log(777);
+              let count = 0;
+              let num = n;
+              while (num > 0n) {
+                count += Number(num & 1n);
+                num >>= 1n;
+              }
+              return count;
+            }
+
+            console.log(888);
+            function generateNumberWithOnes(targetOnes: number, minBits: number): bigint {
+              console.log('generateNumberWithOnes: targetOnes=', targetOnes, 'minBits=', minBits);
+              let result = 0n;
+              const availablePositions: number[] = Array.from({ length: minBits }, (_, i) => i);
+              let positionsLeft = availablePositions.length;
+
+              for (let i = 0; i < targetOnes; i++) {
+                if (positionsLeft === 0) {
+                  console.error('Недостаточно свободных позиций для targetOnes:', targetOnes);
+                  break;
+                }
+                const posIndex = Math.floor(Math.random() * positionsLeft);
+                const bitPos = availablePositions[posIndex];
+                result |= 1n << BigInt(bitPos);
+                availablePositions[posIndex] = availablePositions[positionsLeft - 1];
+                positionsLeft--;
+              }
+
+              console.log('generateNumberWithOnes result:', result.toString());
+              return result;
+            }
+
+            console.log(10000000);
+            const minBits = Math.max(Math.ceil(Math.log2(pow * 2)) + pow * 2, 2048);
+            let result = generateNumberWithOnes(pow, minBits);
+
+            // Добавляем b, но корректируем, если количество единиц превышает pow
+            let originalResult = result;
+            result += b;
+            if (countOnes(result) > pow) {
+              console.log('Коррекция: количество единиц превышает pow, откатываем изменения');
+              result = originalResult; // Откатываем, если добавление b увеличило ones
+            }
+
+            console.log(2222222222);
+            let occupiedPositions: Set<number> = new Set();
+            const initialBits = result.toString(2).split('').reverse();
+            for (let i = 0; i < initialBits.length; i++) {
+              if (initialBits[i] === '1') {
+                occupiedPositions.add(i);
+              }
+            }
+
+            while (countOnes(result) < pow && iteration < maxIterations) {
+              const newOnesNeeded = pow - countOnes(result);
+              if (newOnesNeeded > 0) {
+                let newBitPos: number;
+                do {
+                  newBitPos = Math.floor(Math.random() * minBits);
+                } while (occupiedPositions.has(newBitPos));
+
+                const increment = 1n << BigInt(newBitPos);
+                const newResult = result + increment;
+                if (countOnes(newResult) <= pow) {
+                  // Проверяем, не превышает ли новое значение pow
+                  result = newResult;
+                  occupiedPositions.add(newBitPos);
+                }
+              }
+              iteration++;
+              if (iteration % 1000000 === 0) {
+                console.log('Current result in binary:', result.toString(2));
+                console.log(`Итерация: ${iteration}, result: ${result.toString()}, ones: ${countOnes(result)}`);
+              }
+            }
+            console.log(3333333333333);
+
+            if (iteration >= maxIterations) {
+              console.error('Превышен лимит итераций для pow:', pow);
+              throw new Error('PoW computation timed out');
+            }
+
+            console.log(`Найден результат для pow ${pow}: ${result.toString()}, ones: ${countOnes(result)}`);
+            return result.toString(); // Возвращаем как строку, чтобы избежать Infinity
+          }
+
+          try {
+            // console.log(999);
+            console.log(4444444444);
+            const result = computePoW(pow, nonce);
+            console.log(55555555555);
+            // console.log(111111111111);
+            const baseUrl = 'https://www.dns-shop.ru';
+            const newUrl = `${baseUrl}/__qrator/validate?pow=${pow}&nonce=${nonce}&qsessid=${qsessid}&result=${result}`;
+            console.log('newUrl:', newUrl, 'result:', result);
+
+            await route.continue({ url: newUrl });
+          } catch (error) {
+            console.error('Ошибка вычисления PoW:', error);
+            await route.continue(); // Продолжаем без изменения, если ошибка
+          }
         });
+
+        // Логируем отпечаток для отладки
+        await page.evaluate(() => {
+          console.log('User-Agent:', navigator.userAgent);
+          console.log('WebGL:', !!window.WebGLRenderingContext);
+        });
+
+        // const initialResponse = await page.goto(url, {
+        //   waitUntil: 'domcontentloaded', // Упрощаем ожидание
+        //   timeout: 15000, // 15 секунд
+        // });
+
+        // if (initialResponse.status() === 401) {
+        //   console.log('Получен 401, ждём завершения валидации...');
+        //   const validateResponse = await page.waitForResponse((res) => res.url().includes('/__qrator/validate'), {
+        //     timeout: 10000,
+        //   });
+        //   console.log('Ответ валидации:', validateResponse.status());
+        //   await page.goto(url, {
+        //     waitUntil: 'domcontentloaded',
+        //     timeout: 15000,
+        //   });
+        // }
 
         await page.goto(url, {
           waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
         });
+
         // await page.goto(url, { waitUntil: 'networkidle' });
 
         if (site.name === (SiteNames.WB as string)) {
