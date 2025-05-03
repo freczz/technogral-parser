@@ -9,7 +9,7 @@ import { Injectable } from '@nestjs/common';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright-extra';
 import defaultExport from 'puppeteer-extra-plugin-stealth';
-import { anonymizeProxy } from 'proxy-chain';
+// import { anonymizeProxy } from 'proxy-chain';
 
 const stealth = defaultExport();
 chromium.use(stealth);
@@ -49,75 +49,111 @@ export class ParseService {
   }
 
   async getBrowserContext(): Promise<BrowserContext> {
-    if (!this.browser) {
+    if (!this.browser && !this.context) {
       console.log('Запускаем браузер...');
-      const oldProxy = 'socks5://8ekQf9:Y8V21F@195.158.225.129:8000';
-      const newProxy = await anonymizeProxy(oldProxy);
-      this.browser = await chromium.launch({
+      // const oldProxy = 'socks5://8ekQf9:Y8V21F@195.158.225.129:8000';
+      // const newProxy = await anonymizeProxy(oldProxy);
+      // console.log('newProxy', newProxy);
+
+      const userDataDir = 'C:\\Users\\alexey\\AppData\\Local\\Google\\Chrome\\User Data';
+
+      // this.browser = await chromium.launch({
+      //   headless: false,
+      //   channel: 'chrome',
+      //   // proxy: { server: newProxy },
+      //   args: [
+      //     '--no-sandbox',
+      //     '--disable-gpu',
+      //     '--disable-dev-shm-usage',
+      //     '--disable-software-rasterizer',
+      //     '--enable-features=NetworkService',
+      //     '--disable-blink-features=AutomationControlled',
+      //   ],
+      // });
+
+      this.context = await chromium.launchPersistentContext(userDataDir, {
         headless: false,
         channel: 'chrome',
-        // proxy: { server: newProxy },
-        args: [
-          '--no-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--disable-software-rasterizer',
-          '--enable-features=NetworkService',
-          '--disable-blink-features=AutomationControlled',
-        ],
-      });
-
-      this.context = await this.browser.newContext({
-        viewport: { width: 1280, height: 720 },
+        viewport: null,
+        ignoreHTTPSErrors: true,
         locale: 'ru-RU',
         timezoneId: 'Europe/Moscow',
-        ignoreHTTPSErrors: true,
-        extraHTTPHeaders: {
-          accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-          'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-          'sec-ch-ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
-
-          'accept-encoding': 'gzip, deflate, br',
-          'sec-ch-ua-mobile': '?0',
-          // 'sec-ch-ua-platform': '"Windows"',
-          // 'upgrade-insecure-requests': '1',
-        },
+        // args: ['--profile-directory=PARSER_PROFILE'],
+        args: ['--profile-directory=Profile 3'],
       });
 
-      await this.context.addInitScript(() => {
-        Object.defineProperty(navigator, 'userAgent', {
-          value:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
-          configurable: true,
-        });
+      // this.context = await this.browser.newContext({
+      //   viewport: { width: 1280, height: 720 },
+      //   locale: 'ru-RU',
+      //   timezoneId: 'Europe/Moscow',
+      //   ignoreHTTPSErrors: true,
+      //   extraHTTPHeaders: {
+      //     accept:
+      //       'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+      //     'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      //     'sec-ch-ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
 
-        Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
-        Object.defineProperty(navigator, 'appVersion', {
-          get: () =>
-            '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
-        });
+      //     'accept-encoding': 'gzip, deflate, br',
+      //     'sec-ch-ua-mobile': '?0',
+      //     // 'sec-ch-ua-platform': '"Windows"',
+      //     // 'upgrade-insecure-requests': '1',
+      //   },
+      // });
 
-        // Object.defineProperty(navigator, 'language', { get: () => 'en-US' });
-        // Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+      // await this.context.addInitScript(() => {
+      // Object.defineProperty(navigator, 'userAgent', {
+      //   value:
+      //     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
+      //   configurable: true,
+      // });
 
-        Object.defineProperty(navigator, 'connection', {
-          get: () => ({
-            downlink: 1.35,
-            effectiveType: '4g',
-            rtt: 100,
-            saveData: false,
-          }),
-          configurable: true,
-        });
+      // Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+      // Object.defineProperty(navigator, 'appVersion', {
+      //   get: () =>
+      //     '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
+      // });
 
-        Object.defineProperty(window, '__pwInitScripts', {
-          get: () => undefined,
-        });
-      });
+      // Object.defineProperty(navigator, 'language', { get: () => 'en-US' });
+      //   Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
 
-      this.startPage = await this.context.newPage();
-      await this.startPage.goto('about:blank');
+      //   Object.defineProperty(navigator, 'webdriver', { get: () => false });
+
+      //   Object.defineProperty(navigator, 'plugins', {
+      //     get: () => [1, 2, 3],
+      //   });
+      //   Object.defineProperty(navigator, 'mimeTypes', {
+      //     get: () => [{ type: 'application/pdf' }],
+      //   });
+      //   Object.defineProperty(window, 'screen', {
+      //     get: () => ({
+      //       width: 1280,
+      //       height: 720,
+      //       availWidth: 1280,
+      //       availHeight: 720,
+      //       colorDepth: 24,
+      //       pixelDepth: 24,
+      //     }),
+      //   });
+
+      //   Object.defineProperty(navigator, 'connection', {
+      //     get: () => ({
+      //       downlink: 1.35,
+      //       effectiveType: '4g',
+      //       rtt: 100,
+      //       saveData: false,
+      //     }),
+      //     configurable: true,
+      //   });
+
+      //   Object.defineProperty(window, '__pwInitScripts', {
+      //     get: () => undefined,
+      //   });
+      // });
+
+      const pages = this.context.pages();
+      this.startPage = pages.length ? pages[0] : await this.context.newPage();
+      // this.startPage = await this.context.newPage();
+      // await this.startPage.goto('about:blank');
     }
 
     return this.context;
@@ -137,25 +173,28 @@ export class ParseService {
       let timeoutError: boolean = false;
 
       try {
-        if (site.name !== (SiteNames.WB as string) && site.name !== (SiteNames.DNS as string)) {
-          await page.route('**/*', (route) => {
-            if (
-              route.request().resourceType() === 'stylesheet' ||
-              route.request().resourceType() === 'image' ||
-              route.request().resourceType() === 'font'
-              // route.request().resourceType() === 'script'
-            ) {
-              route.abort();
-            } else {
-              route.continue();
-            }
-          });
-        }
+        // if (site.name !== (SiteNames.WB as string) && site.name !== (SiteNames.DNS as string)) {
+        //   await page.route('**/*', (route) => {
+        //     if (
+        //       route.request().resourceType() === 'stylesheet' ||
+        //       route.request().resourceType() === 'image' ||
+        //       route.request().resourceType() === 'font'
+        //       // route.request().resourceType() === 'script'
+        //     ) {
+        //       route.abort();
+        //     } else {
+        //       route.continue();
+        //     }
+        //   });
+        // }
+
+        console.log(111);
 
         await page.goto(url, {
           waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
         });
 
+        console.log(222);
         // await page.goto(url, { waitUntil: 'networkidle' });
         // await page.waitForSelector('body', { timeout: 30000 }).catch(() => console.log('Body not found'));
 
@@ -211,28 +250,55 @@ export class ParseService {
           //   console.log('content 2', content);
           // }, 5000);
 
+          console.log(333);
+
           const siteType = await Promise.all([
             Promise.race([
-              page.waitForSelector('.product-card__title', { timeout: 60000 }).then(() => 0),
-              page.waitForSelector('.product-card-top__title', { timeout: 60000 }).then(() => 1),
+              page.waitForSelector('.product-card__title', { timeout: 60000 }).then(() => {
+                console.log('.product-card__title');
+                return 0;
+              }),
+              page.waitForSelector('.product-card-top__title', { timeout: 60000 }).then(() => {
+                console.log('.product-card-top__title');
+                return 1;
+              }),
             ]),
             Promise.race([
-              page.waitForSelector('.product-buy__price', { timeout: 60000 }).then(() => 0),
+              page.waitForSelector('.product-buy__price', { timeout: 60000 }).then(() => {
+                console.log('.product-buy__price');
+                return 0;
+              }),
               page
                 .waitForSelector('.product-card-purchase__current-price', {
                   timeout: 60000,
                 })
-                .then(() => 1),
+                .then(() => {
+                  console.log('.product-card-purchase__current-price');
+                  return 1;
+                }),
               page
                 .waitForSelector('.product-card-purchase__off-market', {
                   timeout: 60000,
                 })
-                .then(() => 1),
+                .then(() => {
+                  console.log('.product-card-purchase__off-market');
+                  return 1;
+                }),
+              page
+                .waitForSelector('.product-buy__price-wrap_not-avail', {
+                  timeout: 60000,
+                })
+                .then(() => {
+                  console.log('.product-buy__price-wrap_not-avail');
+                  return 0;
+                }),
             ]),
           ]).catch(() => {
             console.log('TIMEOUT');
             timeoutError = true;
           });
+
+          console.log(444);
 
           if (timeoutError) {
             timeoutError = false;
@@ -245,21 +311,43 @@ export class ParseService {
             name = (await page.locator('.product-card-top__title').first().textContent()).trim();
             const priceElement = await page.locator('.product-buy__price').count();
 
-            console.log('priceElement', priceElement);
+            console.log('priceElement', price, priceElement);
 
-            price = priceElement
-              ? (
-                  await page.locator('.product-buy__price').evaluate((node) => {
-                    return Array.from(node.childNodes)
-                      .filter((n) => n.nodeType === Node.TEXT_NODE)
-                      .map((n) => n.textContent.trim())
-                      .join('');
-                  })
-                ).trim()
-              : 'Не нашли блок с ценой';
+            if (priceElement) {
+              price = priceElement
+                ? (
+                    await page
+                      .locator('.product-buy__price')
+                      .first()
+                      .evaluate((node) => {
+                        return Array.from(node.childNodes)
+                          .filter((n) => n.nodeType === Node.TEXT_NODE)
+                          .map((n) => n.textContent.trim())
+                          .join('');
+                      })
+                  ).trim()
+                : 'Не нашли блок с ценой';
+              console.log('PRICE', price);
+            } else {
+              price = priceElement
+                ? (await page.locator('.product-buy__price-wrap_not-avail').first().textContent()).trim()
+                : //   await page.locator('.product-buy__price-wrap_not-avail').evaluate((node) => {
+                  //     console.log('node', node);
+
+                  //     return Array.from(node.childNodes)
+                  //       .filter((n) => n.nodeType === Node.TEXT_NODE)
+                  //       .map((n) => n.textContent.trim())
+                  //       .join('');
+                  //   })
+                  // ).trim()
+                  'Не нашли блок с ценой';
+              console.log('PRICE 2', price);
+            }
           } else {
             name = (await page.locator('.product-card__title').first().textContent()).trim();
             const priceElement = await page.locator('.product-card-purchase__current-price').count();
+
+            console.log('priceElement 2', price, priceElement);
 
             price = priceElement
               ? (await page.locator('.product-card-purchase__current-price').first().textContent()).trim()
