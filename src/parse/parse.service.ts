@@ -7,12 +7,13 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Injectable } from '@nestjs/common';
 import { Browser, BrowserContext, Page } from 'playwright';
-import { chromium } from 'playwright-extra';
+import { chromium } from 'patchright';
+// import { chromium } from 'playwright-extra';
 import defaultExport from 'puppeteer-extra-plugin-stealth';
-// import { anonymizeProxy } from 'proxy-chain';
+import { anonymizeProxy } from 'proxy-chain';
 
 const stealth = defaultExport();
-chromium.use(stealth);
+// chromium.use(stealth);
 
 interface ISite {
   name: string;
@@ -39,7 +40,7 @@ function getSiteInfo(url: string): ISite | null {
 
 @Injectable()
 export class ParseService {
-  browser: Browser | null = null;
+  browser: any = null;
   context: BrowserContext | null = null;
   startPage: Page | null = null;
   dnsPage: Page | null = null;
@@ -51,36 +52,31 @@ export class ParseService {
   async getBrowserContext(): Promise<BrowserContext> {
     if (!this.browser && !this.context) {
       console.log('Запускаем браузер...');
-      // const oldProxy = 'socks5://8ekQf9:Y8V21F@195.158.225.129:8000';
-      // const newProxy = await anonymizeProxy(oldProxy);
-      // console.log('newProxy', newProxy);
+      const oldProxy = 'socks5://1RtAFm:5EBXCM@147.45.94.139:8000';
+      const newProxy = await anonymizeProxy(oldProxy);
+      console.log('newProxy', newProxy);
 
-      const userDataDir = 'C:\\Users\\alexey\\AppData\\Local\\Google\\Chrome\\User Data';
-
-      // this.browser = await chromium.launch({
-      //   headless: false,
-      //   channel: 'chrome',
-      //   // proxy: { server: newProxy },
-      //   args: [
-      //     '--no-sandbox',
-      //     '--disable-gpu',
-      //     '--disable-dev-shm-usage',
-      //     '--disable-software-rasterizer',
-      //     '--enable-features=NetworkService',
-      //     '--disable-blink-features=AutomationControlled',
-      //   ],
-      // });
-
-      this.context = await chromium.launchPersistentContext(userDataDir, {
+      this.browser = await chromium.launch({
         headless: false,
         channel: 'chrome',
-        viewport: null,
-        ignoreHTTPSErrors: true,
-        locale: 'ru-RU',
-        timezoneId: 'Europe/Moscow',
-        // args: ['--profile-directory=PARSER_PROFILE'],
-        args: ['--profile-directory=Profile 3'],
+        // proxy: { server: newProxy },
+        args: [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          '--enable-features=NetworkService',
+          '--disable-blink-features=AutomationControlled',
+        ],
       });
+
+      console.log('00');
+
+      const userDataDir = 'C:\\Users\\alexey\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 3';
+
+      console.log('01');
+
+      this.context = await this.browser.newContext();
 
       // this.context = await this.browser.newContext({
       //   viewport: { width: 1280, height: 720 },
@@ -101,19 +97,19 @@ export class ParseService {
       // });
 
       // await this.context.addInitScript(() => {
-      // Object.defineProperty(navigator, 'userAgent', {
-      //   value:
-      //     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
-      //   configurable: true,
-      // });
+      //   Object.defineProperty(navigator, 'userAgent', {
+      //     value:
+      //       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.114 Safari/537.36',
+      //     configurable: true,
+      //   });
 
-      // Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
-      // Object.defineProperty(navigator, 'appVersion', {
-      //   get: () =>
-      //     '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35 Safari/537.36',
-      // });
+      //   Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+      //   Object.defineProperty(navigator, 'appVersion', {
+      //     get: () =>
+      //       '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.114 Safari/537.36',
+      //   });
 
-      // Object.defineProperty(navigator, 'language', { get: () => 'en-US' });
+      //   Object.defineProperty(navigator, 'language', { get: () => 'en-US' });
       //   Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
 
       //   Object.defineProperty(navigator, 'webdriver', { get: () => false });
@@ -150,10 +146,14 @@ export class ParseService {
       //   });
       // });
 
-      const pages = this.context.pages();
-      this.startPage = pages.length ? pages[0] : await this.context.newPage();
-      // this.startPage = await this.context.newPage();
-      // await this.startPage.goto('about:blank');
+      console.log('0000000000');
+
+      console.log('browser', this.browser);
+
+      // const page = await this.browser.newPage();
+
+      this.startPage = await this.context.newPage();
+      await this.startPage.goto('about:blank');
     }
 
     return this.context;
@@ -164,9 +164,12 @@ export class ParseService {
     console.log('site', site);
 
     if (site) {
+      console.log('000');
       const context: BrowserContext = await this.getBrowserContext();
+      console.log('001');
 
       const page: Page = await context.newPage();
+      console.log('002');
 
       let name: string = 'unknown';
       let price: string = 'unknown';
@@ -445,3 +448,27 @@ export class ParseService {
     }
   }
 }
+
+//
+// this.context = await chromium.launchPersistentContext(userDataDir, {
+// this.context = await chromium.launch({
+// this.browser = await chromium.launch({
+//   headless: false,
+//   channel: 'chrome',
+//   // viewport: null,
+//   // proxy: { server: newProxy },
+//   // ignoreHTTPSErrors: true,
+//   // locale: 'ru-RU',
+//   // timezoneId: 'Europe/Moscow',
+//   // args: ['--profile-directory=PARSER_PROFILE'],
+//   args: [
+//     '--userDataDir=C:\\Users\\alexey\\AppData\\Local\\Google\\Chrome\\User Data',
+//     '--profileDirectory=Profile 3',
+//     '--disable-blink-features=AutomationControlled',
+//     '--disable-dev-shm-usage',
+//     '--no-sandbox',
+//     // '--profile-directory=Profile 3',
+//   ],
+// });
+
+// this.startPage = pages.length ? pages[0] : await this.context.newPage();
