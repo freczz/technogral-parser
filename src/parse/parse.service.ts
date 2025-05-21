@@ -384,6 +384,7 @@ export class ParseService {
             .count();
 
           if (priceElement1) {
+            // price = (await page.locator("[data-zone-name='price']").first().textContent()).trim();
             price = (await page.locator("[data-auto='snippet-price-current']").first().textContent()).trim();
           } else {
             const priceElement2 = await page.locator("[data-auto='price-block']").count();
@@ -394,7 +395,12 @@ export class ParseService {
               if (priceElement3) {
                 price = (await page.locator("[data-auto='price-value']").first().textContent()).trim();
               } else {
-                price = 'Нет в наличии.';
+                const priceElement4 = await page.locator("[data-zone-name='price']").count();
+                if (priceElement4) {
+                  price = (await page.locator("[data-zone-name='price']").first().textContent()).trim();
+                } else {
+                  price = 'Нет в наличии.';
+                }
               }
             }
           }
