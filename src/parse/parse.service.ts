@@ -236,6 +236,10 @@ export class ParseService {
                 : (await page.locator('.sold-out-product__text').first().textContent()).trim();
             }
           }
+
+          if (/\d/.test(price)) {
+            price = price.replace(/\D/g, '');
+          }
         }
 
         if (site.name === (SiteNames.DNS as string)) {
@@ -356,6 +360,10 @@ export class ParseService {
               ? (await page.locator('.product-card-purchase__current-price').first().textContent()).trim()
               : (await page.locator('.product-card-purchase__off-market').first().textContent()).trim();
           }
+
+          if (/\d/.test(price)) {
+            price = price.replace(/\D/g, '');
+          }
         }
 
         if (site.name === (SiteNames.YANDEX as string)) {
@@ -408,6 +416,10 @@ export class ParseService {
           if (price.includes(':')) {
             price = price.split(':')[1].trim();
           }
+
+          if (/\d/.test(price)) {
+            price = price.replace(/\D/g, '');
+          }
         }
 
         if (site.name === (SiteNames.OZON as string)) {
@@ -437,6 +449,9 @@ export class ParseService {
 
           if (price.includes('c Ozon')) {
             price = price.split('c Ozon')[0].trim();
+          }
+          if (/\d/.test(price)) {
+            price = price.replace(/\D/g, '');
           }
         }
 
