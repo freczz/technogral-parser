@@ -148,7 +148,7 @@ export class ParseService {
 
       console.log('0000000000');
 
-      console.log('browser', this.browser);
+      // console.log('browser', this.browser);
 
       // const page = await this.browser.newPage();
 
@@ -193,12 +193,12 @@ export class ParseService {
 
         console.log(111);
 
-        await page.goto(url, {
-          waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
-        });
+        // await page.goto(url, {
+        //   waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
+        // });
 
         console.log(222);
-        // await page.goto(url, { waitUntil: 'networkidle' });
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
         // await page.waitForSelector('body', { timeout: 30000 }).catch(() => console.log('Body not found'));
 
         if (site.name === (SiteNames.WB as string)) {
@@ -259,6 +259,7 @@ export class ParseService {
 
           console.log(333);
 
+          await page.waitForTimeout(1000);
           const siteType = await Promise.all([
             Promise.race([
               page.waitForSelector('.product-card__title', { timeout: 60000 }).then(() => {
@@ -300,8 +301,8 @@ export class ParseService {
                   return 0;
                 }),
             ]),
-          ]).catch(() => {
-            console.log('TIMEOUT');
+          ]).catch((e) => {
+            console.log('TIMEOUT', e);
             timeoutError = true;
           });
 
@@ -367,6 +368,8 @@ export class ParseService {
         }
 
         if (site.name === (SiteNames.YANDEX as string)) {
+          console.log(333);
+
           const pageTitle = await page.title();
           console.log('pageTitle', pageTitle);
 
@@ -392,19 +395,24 @@ export class ParseService {
             .count();
 
           if (priceElement1) {
+            console.log('priceElement1');
+
             // price = (await page.locator("[data-zone-name='price']").first().textContent()).trim();
             price = (await page.locator("[data-auto='snippet-price-current']").first().textContent()).trim();
           } else {
             const priceElement2 = await page.locator("[data-auto='price-block']").count();
             if (priceElement2) {
+              console.log('priceElement2');
               price = (await page.locator("[data-auto='price-block']").first().textContent()).trim();
             } else {
               const priceElement3 = await page.locator("[data-auto='price-value']").count();
               if (priceElement3) {
+                console.log('priceElement3');
                 price = (await page.locator("[data-auto='price-value']").first().textContent()).trim();
               } else {
                 const priceElement4 = await page.locator("[data-zone-name='price']").count();
                 if (priceElement4) {
+                  console.log('priceElement4');
                   price = (await page.locator("[data-zone-name='price']").first().textContent()).trim();
                 } else {
                   price = 'Нет в наличии.';
