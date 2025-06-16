@@ -46,7 +46,7 @@ export class ParseService {
   dnsPage: Page | null = null;
 
   getErrorData() {
-    return { name: 'Не найдены данные', price: 'Попробуйте еще раз' };
+    return { name: 'Не найдены данные', price: '' };
   }
 
   async getBrowserContext(): Promise<BrowserContext> {
@@ -193,12 +193,12 @@ export class ParseService {
 
         console.log(111);
 
-        // await page.goto(url, {
-        //   waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
-        // });
+        await page.goto(url, {
+          waitUntil: site.name === (SiteNames.DNS as string) ? 'networkidle' : 'domcontentloaded',
+        });
 
         console.log(222);
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
+        // await page.goto(url, { waitUntil: 'domcontentloaded' });
         // await page.waitForSelector('body', { timeout: 30000 }).catch(() => console.log('Body not found'));
 
         if (site.name === (SiteNames.WB as string)) {
@@ -238,7 +238,18 @@ export class ParseService {
           }
 
           if (/\d/.test(price)) {
-            price = price.replace(/\D/g, '');
+            let seenDot = false;
+            price = price
+              .split('')
+              .filter((char) => {
+                if (/\d/.test(char)) return true;
+                if (char === '.' && !seenDot) {
+                  seenDot = true;
+                  return true;
+                }
+                return false;
+              })
+              .join('');
           }
         }
 
@@ -363,7 +374,18 @@ export class ParseService {
           }
 
           if (/\d/.test(price)) {
-            price = price.replace(/\D/g, '');
+            let seenDot = false;
+            price = price
+              .split('')
+              .filter((char) => {
+                if (/\d/.test(char)) return true;
+                if (char === '.' && !seenDot) {
+                  seenDot = true;
+                  return true;
+                }
+                return false;
+              })
+              .join('');
           }
         }
 
@@ -415,7 +437,7 @@ export class ParseService {
                   console.log('priceElement4');
                   price = (await page.locator("[data-zone-name='price']").first().textContent()).trim();
                 } else {
-                  price = 'Нет в наличии.';
+                  price = '0';
                 }
               }
             }
@@ -426,7 +448,18 @@ export class ParseService {
           }
 
           if (/\d/.test(price)) {
-            price = price.replace(/\D/g, '');
+            let seenDot = false;
+            price = price
+              .split('')
+              .filter((char) => {
+                if (/\d/.test(char)) return true;
+                if (char === '.' && !seenDot) {
+                  seenDot = true;
+                  return true;
+                }
+                return false;
+              })
+              .join('');
           }
         }
 
@@ -452,14 +485,25 @@ export class ParseService {
           if (priceElement) {
             price = (await page.locator("[data-widget='webPrice']").locator('span').first().textContent()).trim();
           } else {
-            price = 'Нет в наличии.';
+            price = '0';
           }
 
           if (price.includes('c Ozon')) {
             price = price.split('c Ozon')[0].trim();
           }
           if (/\d/.test(price)) {
-            price = price.replace(/\D/g, '');
+            let seenDot = false;
+            price = price
+              .split('')
+              .filter((char) => {
+                if (/\d/.test(char)) return true;
+                if (char === '.' && !seenDot) {
+                  seenDot = true;
+                  return true;
+                }
+                return false;
+              })
+              .join('');
           }
         }
 
@@ -473,7 +517,7 @@ export class ParseService {
     }
 
     if (!site) {
-      return { name: 'Неверный сайт', price: 'Попробуйте подходящий сайт' };
+      return { name: 'Неверный сайт', price: '' };
     }
   }
 }
